@@ -1,0 +1,47 @@
+[migrateType]
+type = 'migrateLocal'
+
+[common]
+secretId = 'secretId'
+secretKey = 'secretKey'
+region = 'ap-guangzhou'
+concurrency = 5
+supportMediaClassification = [ 'video', 'audio', 'image' ]
+excludeMediaType = [ 'flv' ]
+migrateDbStoragePath = ''
+migrateResultOutputPath = ''
+
+[migrateLocal]
+localPath = ''
+excludes = []
+
+[migrateUrl]
+urllistPath = 'url.txt'
+
+[migrateCos]
+region = 'region'
+bucket = 'bucket'
+secretId = 'secretId'
+secretKey = 'secretKey'
+prefix = 'prefix'
+
+[migrateAws]
+region = 'region'
+bucket = 'bucket'
+accessKeyId = 'accessKeyId'
+accessKeySecret = 'accessKeySecret'
+prefix = 'prefix'
+
+[migrateAli]
+bucket = 'bucket'
+accessKeyId = 'accessKeyId'
+accessKeySecret = 'accessKeySecret'
+endPoint = 'oss-cn-shenzhen.aliyuncs.com'
+prefix = 'prefix'
+
+[migrateQiniu]
+bucket = 'bucket'
+accessKeyId = 'accessKeyId'
+accessKeySecret = 'accessKeySecret'
+endPoint = 'xxx.bkt.clouddn.com'
+prefix = ''

@@ -1,0 +1,12 @@
+*.pyc
+config.toml
+*.db
+media/*
+vod_migrate_result.txt
+.vscode/
+build/
+dist/
+vodmigrate.egg-info/
+__pycache__
+db
+toml
