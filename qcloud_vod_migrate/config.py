@@ -11,6 +11,7 @@ COMMON_SECTION_NAME = "common"
 COMMON_SECRET_ID = "secretId"
 COMMON_SECRET_KEY = "secretKey"
 COMMON_REGION = "region"
+COMMON_SUBAPPID = "subAppId"
 COMMON_CONCURRENCY = "concurrency"
 COMMON_SUPPORT_MEDIA_CLASSIFICATION = "supportMediaClassification"
 COMMON_EXCLUDE_MEDIA_TYPE = "excludeMediaType"
@@ -150,6 +151,9 @@ class ConfigParser(object):
 
         if not ConfigParser.check_items_exist(COMMON_SECTION_NAME, common_config):
             return False
+
+        if COMMON_SUBAPPID not in dict_config[COMMON_SECTION_NAME]:
+            dict_config[COMMON_SECTION_NAME][COMMON_SUBAPPID] = 0
 
         concurrency = int(common_config[COMMON_CONCURRENCY])
         if concurrency <= 0 or concurrency >= MAX_CONCURRENCY:
