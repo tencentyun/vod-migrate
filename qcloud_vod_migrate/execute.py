@@ -399,6 +399,7 @@ class Task(object):
             try:
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_client.upload(self.conf.common.region,
                                                   request)
 
@@ -415,6 +416,7 @@ class Task(object):
                     return
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r)
 
@@ -434,6 +436,7 @@ class Task(object):
                 r = cos_client.get_object(self.conf.migrateCos.bucket, filename)
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request,
                     r['Body'].get_raw_stream())
@@ -455,6 +458,7 @@ class Task(object):
                 r = bucket.Object(filename).get()
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r['Body'])
 
@@ -477,6 +481,7 @@ class Task(object):
                 r = bucket.get_object(filename)
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r)
 
@@ -503,6 +508,7 @@ class Task(object):
 
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
+                request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r)
 

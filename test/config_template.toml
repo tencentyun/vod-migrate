@@ -5,6 +5,7 @@ type = 'migrateLocal'
 secretId = 'secretId'
 secretKey = 'secretKey'
 region = 'ap-guangzhou'
+subAppId = 0
 concurrency = 5
 supportMediaClassification = [ 'video', 'audio', 'image' ]
 excludeMediaType = [ 'flv' ]
