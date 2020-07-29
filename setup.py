@@ -25,7 +25,7 @@ def long_description():
 
 setup(
     name='vodmigrate',
-    version='1.0.8',
+    version='1.0.9',
     url='https://www.qcloud.com/',
     license='MIT',
     author='vod',

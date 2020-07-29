@@ -165,12 +165,16 @@ class ConfigParser(object):
         dict_config[COMMON_SECTION_NAME][
             COMMON_MIGRATE_DB_STORAGE_PATH] = os.path.abspath(
                 migrate_db_storage_path)
+        if not os.path.exists(dict_config[COMMON_SECTION_NAME][COMMON_MIGRATE_DB_STORAGE_PATH]):
+            os.makedirs(dict_config[COMMON_SECTION_NAME][COMMON_MIGRATE_DB_STORAGE_PATH])
 
         migrate_result_output_path = dict_config[COMMON_SECTION_NAME][
             COMMON_MIGRATE_RESULT_OUTPUT_PATH]
         dict_config[COMMON_SECTION_NAME][
             COMMON_MIGRATE_RESULT_OUTPUT_PATH] = os.path.abspath(
                 migrate_result_output_path)
+        if not os.path.exists(dict_config[COMMON_SECTION_NAME][COMMON_MIGRATE_RESULT_OUTPUT_PATH]):
+            os.makedirs(dict_config[COMMON_SECTION_NAME][COMMON_MIGRATE_RESULT_OUTPUT_PATH])
 
         return True
 

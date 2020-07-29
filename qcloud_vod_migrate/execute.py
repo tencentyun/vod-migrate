@@ -35,7 +35,7 @@ media_classification_config = [{
         "video",
     "mediaTypeList": [
         "mp4", "flv", "wmv", "asf", "rm", "rmvb", "mpg", "mpeg", "3gp", "mov",
-        "webm", "mkv", "avi"
+        "webm", "mkv", "avi", "ts"
     ],
 }, {
     "class": "audio",
@@ -66,7 +66,7 @@ class TaskProducer(object):
         file_type = FileUtil.get_file_type(filename)
         for classification in iter(media_classification_config):
             for media_type in iter(classification["mediaTypeList"]):
-                if file_type == media_type:
+                if file_type.lower() == media_type:
                     return classification["class"]
         return ""
 
@@ -81,7 +81,7 @@ class TaskProducer(object):
     def is_exclude_media_type(self, filename):
         file_type = FileUtil.get_file_type(filename)
         for media_type in iter(self.conf.common.excludeMediaType):
-            if file_type == media_type:
+            if file_type.lower() == media_type:
                 return True
         return False
 
@@ -109,12 +109,15 @@ class TaskProducer(object):
 
         if self.migrate_type == MIGRATE_FROM_LOCAL:
             if self.is_excludes(filename):
+                logger.info("{filename}: skipped by path".format(filename=to_printable_str(filename)))
                 return False
 
         if not self.is_support_media_classification(filename):
+            logger.info("{filename}: skipped by media classification".format(filename=to_printable_str(filename)))
             return False
 
         if self.is_exclude_media_type(filename):
+            logger.info("{filename}: skipped by media type".format(filename=to_printable_str(filename)))
             return False
 
         return True
