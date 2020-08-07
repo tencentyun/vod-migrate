@@ -35,11 +35,11 @@ media_classification_config = [{
         "video",
     "mediaTypeList": [
         "mp4", "flv", "wmv", "asf", "rm", "rmvb", "mpg", "mpeg", "3gp", "mov",
-        "webm", "mkv", "avi", "ts"
+        "webm", "mkv", "avi", "ts", "wm", "asx", "ram", "mpe", "vob", "dat", "mp4v", "m4v", "f4v", "mxf"
     ],
 }, {
     "class": "audio",
-    "mediaTypeList": ["mp3", "m4a", "flac", "ogg", "wav"],
+    "mediaTypeList": ["mp3", "m4a", "flac", "ogg", "wav", "ra", "aac", "amr"],
 }, {
     "class":
         "image",
