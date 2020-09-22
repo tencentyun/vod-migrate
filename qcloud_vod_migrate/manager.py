@@ -74,7 +74,7 @@ class MigrateRecord(Base):
     file_id = Column(String(128), server_default='')
     vod_url = Column(String(256), server_default='')
     status = Column(String(16))
-    err_msg = Column(String(256), nullable=False, server_default='')
+    err_msg = Column(String(256), nullable=True, server_default='')
     create_time = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
     update_time = Column(
         TIMESTAMP,

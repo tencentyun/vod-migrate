@@ -8,9 +8,12 @@ import datetime
 if sys.version_info[0] == 3:
     from urllib.request import urlopen
     from urllib.parse import quote
+    from urllib.parse import urlparse
 else:
     from urllib2 import urlopen
     from urllib import quote
+    from urlparse import urlparse
+    
 
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 from qcloud_vod.common import FileUtil
@@ -35,11 +38,11 @@ media_classification_config = [{
         "video",
     "mediaTypeList": [
         "mp4", "flv", "wmv", "asf", "rm", "rmvb", "mpg", "mpeg", "3gp", "mov",
-        "webm", "mkv", "avi", "ts"
+        "webm", "mkv", "avi", "ts", "wm", "asx", "ram", "mpe", "vob", "dat", "mp4v", "m4v", "f4v", "mxf"
     ],
 }, {
     "class": "audio",
-    "mediaTypeList": ["mp3", "m4a", "flac", "ogg", "wav"],
+    "mediaTypeList": ["mp3", "m4a", "flac", "ogg", "wav", "ra", "aac", "amr"],
 }, {
     "class":
         "image",
@@ -166,7 +169,9 @@ class TaskProducer(object):
                 for url in open(self.conf.migrateUrl.urllistPath):
                     if not isinstance(url, text_type):
                         url = url.decode(fs_coding)
-                    if self.need_to_migrate(url):
+                    url = url.strip('\n')
+                    u = urlparse(url)
+                    if self.need_to_migrate(u.path):
                         record = MigrateRecord(
                             migrate_type=self.migrate_type,
                             filename=url,
@@ -418,7 +423,9 @@ class Task(object):
                     logger.error("download failed: %d" % r.getcode())
                     return
                 request = VodUploadRequest()
-                request.MediaFilePath = filename
+                u = urlparse(filename)
+                filePath = os.path.basename(u.path)
+                request.MediaFilePath = filePath
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r)
