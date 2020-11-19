@@ -13,7 +13,7 @@ else:
     from urllib2 import urlopen
     from urllib import quote
     from urlparse import urlparse
-    
+import requests
 
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
 from qcloud_vod.common import FileUtil
@@ -26,6 +26,8 @@ from qcloud_vod.vod_upload_client import VodUploadClient
 from qcloud_vod.model import VodUploadRequest
 from qcloud_cos import CosConfig, CosS3Client
 from six import text_type
+from botocore.client import Config
+import boto3
 import boto3.session
 import oss2
 import qiniu
@@ -418,21 +420,24 @@ class Task(object):
                 raise e
         elif self.migrate_type == MIGRATE_FROM_URLLIST:
             try:
-                r = urlopen(filename)
-                if r.getcode() != 200:
-                    logger.error("download failed: %d" % r.getcode())
-                    return
+                r = requests.get(filename)
+                if r.status_code != 200:
+                    raise Exception('download: {key} failed, httpCode: {code}'.format(
+                        key=filename, code=r.getcode()))
+                size = 0
+                if 'Content-Length' in r.headers:
+                    size = int(r.headers['Content-Length'])
                 request = VodUploadRequest()
                 u = urlparse(filename)
                 filePath = os.path.basename(u.path)
                 request.MediaFilePath = filePath
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
-                    self.conf.common.region, request, r)
+                    self.conf.common.region, request, r, size)
 
                 return response
             except Exception as e:
-                logger.error("{file} upload failed: {error}".format(
+                logger.error('{file} upload failed: {error}'.format(
                     file=to_printable_str(filename), error=e))
                 raise e
         elif self.migrate_type == MIGRATE_FROM_COS:
@@ -449,11 +454,11 @@ class Task(object):
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request,
-                    r['Body'].get_raw_stream())
+                    r['Body'], int(r['Content-Length']))
 
                 return response
             except Exception as e:
-                logger.error("{file} upload failed: {error}".format(
+                logger.error('{file} upload failed: {error}'.format(
                     file=to_printable_str(filename), error=e))
                 raise e
         elif self.migrate_type == MIGRATE_FROM_AWS:
@@ -470,11 +475,11 @@ class Task(object):
                 request.MediaFilePath = filename
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
-                    self.conf.common.region, request, r['Body'])
+                    self.conf.common.region, request, r['Body'], r['ContentLength'])
 
                 return response
             except Exception as e:
-                logger.error("{file} upload failed: {error}".format(
+                logger.error('{file} upload failed: {error}'.format(
                     file=to_printable_str(filename), error=e))
                 raise e
         elif self.migrate_type == MIGRATE_FROM_ALI:
@@ -493,11 +498,11 @@ class Task(object):
                 request.MediaFilePath = filename
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
-                    self.conf.common.region, request, r)
+                    self.conf.common.region, request, r, r.content_length)
 
                 return response
             except Exception as e:
-                logger.error("{file} upload failed: {error}".format(
+                logger.error('{file} upload failed: {error}'.format(
                     file=to_printable_str(filename), error=e))
                 raise e
         elif self.migrate_type == MIGRATE_FROM_QINIU:
@@ -511,16 +516,20 @@ class Task(object):
                     end_point=end_point, key=quote(to_printable_str(filename)))
                 private_url = auth.private_download_url(base_url)
 
-                r = urlopen(private_url)
-                if r.getcode() != 200:
+                r = requests.get(private_url)
+                if r.status_code != 200:
+                    logger.error("code: {code}".format(code=r.status_code))
                     raise Exception('download: {key} failed, httpCode: {code}'.format(
-                        key=filename, code=r.getcode()))
+                        key=filename, code=r.status_code))
+                size = 0
+                if 'Content-Length' in r.headers:
+                    size = int(r.headers['Content-Length'])
 
                 request = VodUploadRequest()
                 request.MediaFilePath = filename
                 request.SubAppId = self.conf.common.subAppId
                 response = self.vod_uploader.upload_from_buffer(
-                    self.conf.common.region, request, r)
+                    self.conf.common.region, request, r, size)
 
                 return response
             except Exception as e:
