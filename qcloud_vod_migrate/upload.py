@@ -20,7 +20,7 @@ class VodUploader(object):
         self.ignore_check = False
         self.retry_time = 3
 
-    def upload_from_buffer(self, region, request, body):
+    def upload_from_buffer(self, region, request, body, size=0):
         if not self.ignore_check:
             self._prefix_check_and_set_default_val(region, request)
 
@@ -65,6 +65,19 @@ class VodUploader(object):
                 apply_upload_response.CoverStoragePath[1:],
                 request.ConcurrentUploadNumber)
 
+        object_size = self.get_object_size(
+            cos_client,
+            apply_upload_response.StorageBucket,
+            apply_upload_response.MediaStoragePath[1:]
+        )
+
+        if size != 0:
+            if size != object_size:
+                logger.error("incomplete upload, src file size: {src_size}, object size: {object_size}".format(
+                    src_size=size, object_size=object_size
+                ))
+                raise VodClientException("incomplete upload")
+
         commit_upload_request = models.CommitUploadRequest()
         commit_upload_request.VodSessionKey = apply_upload_response.VodSessionKey
         commit_upload_request.SubAppId = request.SubAppId
@@ -81,12 +94,17 @@ class VodUploader(object):
         return response
 
     @staticmethod
+    def get_object_size(cos_client, bucket, cos_path):
+        r = cos_client.get_object(Bucket=bucket, Key=cos_path)
+        return int(r["Content-Length"])
+
+    @staticmethod
     def upload_file_from_buffer(cos_client, body, bucket, cos_path, max_thread):
         if max_thread is None:
-            cos_client.upload_file_from_buffer(
+            cos_client.put_object(
                 Bucket=bucket, Body=body, Key=cos_path)
         else:
-            cos_client.upload_file_from_buffer(
+            cos_client.put_object(
                 Bucket=bucket, Body=body, Key=cos_path, MAXThread=max_thread)
 
     def apply_upload(self, api_client, request):
