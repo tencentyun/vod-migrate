@@ -427,6 +427,7 @@ class Task(object):
                 size = 0
                 if 'Content-Length' in r.headers:
                     size = int(r.headers['Content-Length'])
+                self.record.filesize = size
                 request = VodUploadRequest()
                 u = urlparse(filename)
                 filePath = os.path.basename(u.path)
