@@ -40,7 +40,10 @@ media_classification_config = [{
         "video",
     "mediaTypeList": [
         "mp4", "flv", "wmv", "asf", "rm", "rmvb", "mpg", "mpeg", "3gp", "mov",
-        "webm", "mkv", "avi", "ts", "wm", "asx", "ram", "mpe", "vob", "dat", "mp4v", "m4v", "f4v", "mxf"
+        "webm", "mkv", "avi", "ts", "wm", "asx", "ram", "mpe", "vob", "dat",
+        "mp4v", "m4v", "f4v", "mxf", "qt", "tif", "psb", "psd", "docx", "key",
+        "pdf", "pptx", "txt", "xlsx", "0", "02", "1", "ttf", "app", "db", "dll",
+        "exe", "json", "otf", "prproj", "swf", "vch", "xml", "zip"
     ],
 }, {
     "class": "audio",
