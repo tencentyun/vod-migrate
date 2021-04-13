@@ -86,7 +86,7 @@ class TaskProducer(object):
     def is_exclude_media_type(self, filename):
         file_type = FileUtil.get_file_type(filename)
         for media_type in iter(self.conf.common.excludeMediaType):
-            if file_type.lower() == media_type:
+            if file_type.lower() == media_type.lower():
                 return True
         return False
 
@@ -108,6 +108,10 @@ class TaskProducer(object):
         except Exception as e:
             logger.error(e)
             raise e
+
+    def bad_filename(self, filename):
+        '''获取不合法的文件名'''
+        return repr(filename)[1:-1]
 
     def need_to_migrate(self, filename):
         '''检查该文件的类别（视频、音频、图片）是否需要迁移；检查该文件的类型（mp4、flv、mp3等）是否被排除'''
@@ -150,19 +154,23 @@ class TaskProducer(object):
                 for root, _, files in os.walk(
                         self.conf.migrateLocal.localPath, topdown=True):
                     for name in files:
-                        local_file = os.path.join(root, name)
-                        if not isinstance(local_file, text_type):
-                            local_file = local_file.decode(fs_coding)
-                        if self.need_to_migrate(local_file):
-                            file_info = os.stat(local_file)
-                            record = MigrateRecord(
-                                migrate_type=self.migrate_type,
-                                filename=local_file,
-                                mtime=int(file_info.st_mtime),
-                                filesize=file_info.st_size,
-                                etag="",
-                                status=MIGRATE_INIT)
-                            self.save_record(record)
+                        try:
+                            local_file = os.path.join(root, name)
+                            if not isinstance(local_file, text_type):
+                                local_file = local_file.decode(fs_coding)
+                            if self.need_to_migrate(local_file):
+                                file_info = os.stat(local_file)
+                                record = MigrateRecord(
+                                    migrate_type=self.migrate_type,
+                                    filename=local_file,
+                                    mtime=int(file_info.st_mtime),
+                                    filesize=file_info.st_size,
+                                    etag="",
+                                    status=MIGRATE_INIT)
+                                self.save_record(record)
+                        except UnicodeEncodeError as e:
+                            logger.error("{file} build failed: {error}".format(
+                                file=self.bad_filename(os.path.join(root, name)), error=e))
             except Exception as e:
                 logger.error(e)
                 raise e
