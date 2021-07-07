@@ -31,7 +31,7 @@ region = 'region'
 bucket = 'bucket'
 accessKeyId = 'accessKeyId'
 accessKeySecret = 'accessKeySecret'
-prefix = 'prefix'
+prefix = ''
 
 [migrateAli]
 bucket = 'bucket'
