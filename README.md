@@ -4,9 +4,11 @@
 
 VOD Migrate Tool 是一个集成了数据迁移功能的一体化工具。通过编写简单的配置文件，用户可以将源地址媒体文件快速迁移至 VOD 中。
 
+Url列表场景，推荐使用batch_pull_upload.py 脚本，效率更高。此子场景使用方式见: ./batch_pull_upload/README.md
+
 ## 支持的数据源
 * [x] 本地文件夹
-* [x] Url列表
+* [x] Url列表 （推荐使用batch_pull_upload.py 脚本）
 * [x] 腾讯云 COS
 * [x] AWS S3
 * [x] 阿里云 OSS
@@ -64,7 +66,7 @@ type="migrateLocal"
 | migrateType  |           描述           |
 | :----------- | :----------------------: |
 | migrateLocal |     从本地迁移至 VOD     |
-| migrateUrl   |   下载 URL 迁移到 VOD    |
+| ~~migrateUrl~~   |   下载 URL 迁移到 VOD    |
 | migrateCos   | 从 腾讯云 COS 迁移至 VOD |
 | migrateAws   |   从 AWS S3 迁移至 VOD   |
 | migrateAli   | 从阿里云 OSS 迁移至 VOD  |

@@ -1,0 +1,8 @@
+{
+    "secret_id": "your secret id",
+    "secret_key": "your secret key",
+    "region": "ap-guangzhou",
+    "subappid": 1,
+    "tasks_priority": 0,
+    "procedure": ""
+}
