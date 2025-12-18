@@ -1,0 +1,14 @@
+# 批量拉取上传URL列表示例文件
+# 格式：URL,MediaName,ClassId
+# 以#开头的行为注释，会被忽略
+# 空行也会被忽略
+# 注意：MediaName和ClassId为可选字段，可以为空
+
+
+# 测试URL列表 - 完整格式
+http://example/v/oceans.mp4,测试
+#http://error-exqmple/v/xxxx.mp4,错误测试视频,1002
+#https://example/2010/05/sintel/trailer.mp4
+
+# 测试URL列表 - 部分格式
+#http://www.w3school.com.cn/example/html5/mov_bbb.mp4,,1003
