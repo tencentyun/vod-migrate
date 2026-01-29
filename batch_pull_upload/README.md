@@ -2,10 +2,10 @@
 
 ## 版本信息
 
-- **当前版本**：v1.0（最新优化版本）
+- **当前版本**：v2.0（支持自定义路径版本）
 - **Python要求**：3.6+
-- **依赖库**：tencentcloud-sdk-python
-- **最后更新**：2025年12月
+- **依赖库**：tencentcloud-sdk-python（最新版）
+- **最后更新**：2026年1月
 
 ## 功能概述
 
@@ -21,11 +21,13 @@
 - ✅ **详细日志**：自动生成带时间戳的日志文件
 - ✅ **结果保存**：完整的JSON格式结果报告，包含详细统计分析
 - ✅ **参数验证**：严格的配置参数验证和URL格式检查
+- ✅ **自定义路径**：支持MediaStoragePath自定义存储路径配置
+- ✅ **URL路径提取**：支持从URL中自动提取路径作为存储路径
 
 ## 文件结构
 
 ```
-pull_upload_list/
+batch_pull_upload/
 ├── batch_pull_upload_api.sh   # 安装云 API Python SDK的脚本
 ├── batch_pull_upload.py      # 主脚本文件（核心实现）
 ├── config.json              # 配置文件（腾讯云API密钥）
@@ -55,6 +57,7 @@ bash batch_pull_upload_api.sh
 - **第1列（必需）**：URL地址，必须以 `http://` 或 `https://` 开头
 - **第2列（可选）**：MediaName 媒体名称，支持中文，留空表示使用默认名称
 - **第3列（可选）**：ClassId 分类ID，数字格式，留空表示使用默认分类
+- **第4列（可选）**：MediaStoragePath 自定义存储路径，以`/`开头，只有FileID + Path 模式的子应用可以指定存储路径。
 
 **URL格式要求：**
 - 必须以 `http://` 或 `https://` 开头
@@ -84,10 +87,10 @@ https://example.com/video1.mp4,,1001
 https://example.com/video2.mp4,,1002
 ```
 
-#### 🎯 格式4：完整三列格式（推荐）
+#### 🎯 格式4：完整四列格式
 ```
-https://example.com/video1.mp4,我的视频1,1001
-https://example.com/video2.mp4,测试视频,1002
+https://example.com/video1.mp4,我的视频1,1001,/custom/path/video1.mp4
+https://example.com/video2.mp4,测试视频,1002,/videos/2024/test.mp4
 ```
 
 #### 🎯 格式5：混合使用（完全支持）
@@ -102,7 +105,7 @@ https://example.com/video2.mp4,视频名称,
 https://example.com/video3.mp4,,1003
 
 # 完整格式
-https://example.com/video4.mp4,完整视频,1004
+https://example.com/video4.mp4,完整视频,1004,/archive/video4.mp4
 ```
 
 ### 2.准备配置文件
@@ -116,7 +119,11 @@ https://example.com/video4.mp4,完整视频,1004
     "region": "ap-guangzhou",
     "subappid": 0,
     "tasks_priority": 0,
-    "procedure": ""
+    "procedure": "",
+    "custom_path": {
+        "use_url_path": false,
+        "prefix": ""
+    }
 }
 ```
 
@@ -162,6 +169,55 @@ python3 batch_pull_upload.py your_url_list.txt
   - 用于指定上传后的处理流程
   - 需要在腾讯云控制台预先创建任务流模板
   - 示例：`"procedure": "MyCustomProcess"` 指定自定义处理流程
+
+- `custom_path` - 自定义存储路径配置（可选）
+  - `use_url_path`：是否使用URL路径（默认false）
+  - `prefix`：路径前缀（如`/videos/2024`）
+
+## 自定义路径配置详解
+
+### 路径组合优先级
+1. **使用URL路径**：当`use_url_path=true`时，自动提取URL中的路径部分，此时忽略第四列MediaStoragePath。
+2. **自定义路径**：当`use_url_path=false`时并提供MediaStoragePath时，使用用户指定的路径
+3. **路径前缀**：如果配置了prefix，会在路径前添加此前缀。若只有前缀，`use_url_path=false`，第四列MediaStoragePath为空。则为前缀+文件名
+
+### 配置示例
+
+**示例1：使用URL路径**
+```json
+{
+    "custom_path": {
+        "use_url_path": true,
+        "prefix": "/videos"
+    }
+}
+```
+URL：`https://example.com/path/to/video.mp4`
+最终路径：`/videos/path/to/video.mp4`
+
+**示例2：自定义路径**
+```json
+{
+    "custom_path": {
+        "use_url_path": false,
+        "prefix": "/archive"
+    }
+}
+```
+URL列表：`https://example.com/video.mp4,,,/custom/path/video.mp4`
+最终路径：`/archive/custom/path/video.mp4`
+
+**示例3：仅使用前缀**
+```json
+{
+    "custom_path": {
+        "use_url_path": false,
+        "prefix": "/uploads"
+    }
+}
+```
+URL列表：`https://example.com/video.mp4`
+最终路径：`/uploads/video.mp4`
 
 ## 核心参数配置
 
@@ -278,6 +334,7 @@ worker = PullUploadWorker(max_retries=5)
 - **编码问题**：强制UTF-8编码，处理中文URL
 - **URL格式验证**：严格的URL格式检查
 - **空行和注释**：自动跳过空行和注释行
+- **路径格式验证**：检查MediaStoragePath格式（必须以/开头）
 
 ### 3. API调用层错误处理
 - **TencentCloudSDK异常**：捕获所有SDK异常，提取详细错误信息
@@ -338,6 +395,7 @@ worker = PullUploadWorker(max_retries=5)
 - **文件编码**：URL列表文件必须使用UTF-8编码
 - **权限错误**：检查config.json文件读取权限
 - **超时问题**：大文件拉取可能需要调整超时时间
+- **路径格式错误**：MediaStoragePath必须以/开头
 
 ---
 
