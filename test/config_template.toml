@@ -12,6 +12,10 @@ excludeMediaType = [ 'flv' ]
 migrateDbStoragePath = ''
 migrateResultOutputPath = ''
 
+[common.storagePath]
+useOriginal = true  # 若上传需要保持原有路径则为true，只使用vod应用支持FileID + Path 模式。
+prefix = ''
+
 [migrateLocal]
 localPath = ''
 excludes = []

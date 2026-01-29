@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     try:
-        conf_path = './test/config.toml'
+        conf_path = './config_template.toml'
         config = ConfigParser.parse(conf_path)
 
         if PY2:

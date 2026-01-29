@@ -412,16 +412,22 @@ class Task(object):
 
     def upload_file(self, filename):
         '''上传文件到vod'''
+        prefix = self.conf.common.storagePath.prefix
+        if prefix:
+            prefix = prefix.strip()
+            # 确保 prefix 以 / 开头，并且不以 / 结尾
+            if not prefix.startswith('/'):
+                prefix = '/' + prefix
+            prefix = prefix.rstrip('/')
+        request = VodUploadRequest()
+        request.SubAppId = self.conf.common.subAppId
 
         if self.migrate_type == MIGRATE_FROM_LOCAL:
             try:
-                request = VodUploadRequest()
                 request.MediaFilePath = filename
-                request.SubAppId = self.conf.common.subAppId
-                response = self.vod_client.upload(self.conf.common.region,
-                                                  request)
-
-                return response
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + filename
+                return self.vod_client.upload(self.conf.common.region, request)
             except Exception as e:
                 logger.error("{file} upload failed: {error}".format(
                     file=to_printable_str(filename), error=e))
@@ -436,11 +442,11 @@ class Task(object):
                 if 'Content-Length' in r.headers:
                     size = int(r.headers['Content-Length'])
                 self.record.filesize = size
-                request = VodUploadRequest()
                 u = urlparse(filename)
-                filePath = os.path.basename(u.path)
-                request.MediaFilePath = filePath
-                request.SubAppId = self.conf.common.subAppId
+                filepath = os.path.basename(u.path)
+                request.MediaFilePath = filepath
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + u.path
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r, size)
 
@@ -458,9 +464,9 @@ class Task(object):
                 cos_client = CosS3Client(cos_config)
 
                 r = cos_client.get_object(self.conf.migrateCos.bucket, filename)
-                request = VodUploadRequest()
                 request.MediaFilePath = filename
-                request.SubAppId = self.conf.common.subAppId
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + "/" + filename
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request,
                     r['Body'], int(r['Content-Length']))
@@ -480,9 +486,9 @@ class Task(object):
                 bucket = s3.Bucket(self.conf.migrateAws.bucket)
 
                 r = bucket.Object(filename).get()
-                request = VodUploadRequest()
                 request.MediaFilePath = filename
-                request.SubAppId = self.conf.common.subAppId
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + "/" + filename
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r['Body'], r['ContentLength'])
 
@@ -503,9 +509,9 @@ class Task(object):
                     self.conf.migrateAli.bucket)
 
                 r = bucket.get_object(filename)
-                request = VodUploadRequest()
                 request.MediaFilePath = filename
-                request.SubAppId = self.conf.common.subAppId
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + "/" + filename
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r, r.content_length)
 
@@ -534,9 +540,9 @@ class Task(object):
                 if 'Content-Length' in r.headers:
                     size = int(r.headers['Content-Length'])
 
-                request = VodUploadRequest()
                 request.MediaFilePath = filename
-                request.SubAppId = self.conf.common.subAppId
+                if self.conf.common.storagePath.useOriginal:
+                    request.MediaStoragePath = prefix + "/" + filename
                 response = self.vod_uploader.upload_from_buffer(
                     self.conf.common.region, request, r, size)
 
