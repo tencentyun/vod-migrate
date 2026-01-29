@@ -9,6 +9,8 @@
 4. 提供详细的日志记录和进度显示
 """
 
+from urllib.parse import urlparse
+
 import json
 import sys
 import os
@@ -67,7 +69,7 @@ class PullUploadConfig:
 
 
 class RateLimiter:
-    """简单限流控制类：计数器+sleep"""
+    """简单限流控制类 - 计数器+sleep"""
     def __init__(self, max_requests_per_second=5):
         self.max_requests = max_requests_per_second
         self.request_count = 0
@@ -119,7 +121,51 @@ class PullUploadWorker:
         except Exception as e:
             raise Exception(f"Failed to create VOD client: {e}")
     
-    def _pull_single_media(self, url, media_name=None, class_id=None):
+    def _build_media_storage_path(self, url, media_storage_path=None):
+        storage_path_config = self.config.get("custom_path", {})
+        use_url_path = storage_path_config.get("use_url_path", False)
+        prefix = storage_path_config.get("prefix", "")
+
+        final_path = ""
+
+        if use_url_path:
+            # 优先使用 URL 中的 path
+            parsed_url = urlparse(url)
+            url_path = parsed_url.path
+            if url_path:
+                final_path = url_path
+                logging.debug(f"use_url_path=true, using URL path: {url_path}")
+        elif media_storage_path and media_storage_path.strip():
+            # 其次使用用户提供的 MediaStoragePath（必须以 / 开头）
+            if media_storage_path.strip().startswith('/'):
+                final_path = media_storage_path.strip()
+
+        if prefix and prefix.strip():
+            prefix = prefix.strip()
+            # 确保 prefix 以 / 开头，并且不以 / 结尾
+            if not prefix.startswith('/'):
+                prefix = '/' + prefix
+            prefix = prefix.rstrip('/')
+
+            if final_path:
+                # 如果已有路径，拼接 prefix + path
+                result = prefix + final_path
+                logging.debug(f"Using combined path: prefix={prefix}, path={final_path}, final={result}")
+            else:
+                # 如果没有路径，只使用 prefix
+                parsed_url = urlparse(url)
+                filename = parsed_url.path.split('/')[-1]
+                result = prefix + '/' + filename
+                logging.debug(f"Using prefix only: {prefix}")
+            return result
+        elif final_path:
+            # 如果没有 prefix 但有路径，使用路径
+            return final_path
+
+        # 没有路径需要设置
+        return None
+
+    def _pull_single_media(self, url, media_name=None, class_id=None, media_storage_path=None):
         """单次拉取上传操作"""
         # 验证URL格式
         if not url or not isinstance(url, str):
@@ -142,9 +188,14 @@ class PullUploadWorker:
                 params["ClassId"] = int(class_id.strip())
             except ValueError:
                 logging.warning(f"Invalid ClassId format: {class_id}, must be integer, skipping")
-        
+
         # 安全地添加可选参数
         try:
+            # 构建并设置 MediaStoragePath
+            storage_path = self._build_media_storage_path(url, media_storage_path)
+            if storage_path:
+                params["MediaStoragePath"] = storage_path
+
             if "subappid" in self.config:
                 subappid = self.config["subappid"]
                 if isinstance(subappid, (int, str)) and str(subappid).isdigit():
@@ -214,7 +265,7 @@ class PullUploadWorker:
                 "error_code": "SYSTEM_ERROR"
             }
     
-    def pull_with_retry(self, url, media_name=None, class_id=None, external_timeout=INTERNAL_TIMEOUT):
+    def pull_with_retry(self, url, media_name=None, class_id=None, media_storage_path=None, external_timeout=INTERNAL_TIMEOUT):
         """带重试机制的拉取上传"""
         last_error = None
         total_start_time = time.time()
@@ -236,8 +287,8 @@ class PullUploadWorker:
                 wait_time = min(2 ** attempt, 30)
                 logging.info(f"[RETRY] Waiting {wait_time}s before retry {attempt}/{self.max_retries}")
                 time.sleep(wait_time)
-            
-            result = self._pull_single_media(url, media_name, class_id)
+
+            result = self._pull_single_media(url, media_name, class_id, media_storage_path)
             
             if result["success"]:
                 if attempt > 0:
@@ -308,11 +359,11 @@ class BatchPullUploader:
         return logger
         
     def _parse_url_list(self, url_list_file):
-        """解析URL列表文件，支持三列格式：URL,MediaName,ClassId"""
+        """解析URL列表文件，支持四列格式：URL,MediaName,ClassId,MediaStoragePath"""
         if not os.path.exists(url_list_file):
             self.logger.error(f"URL list file {url_list_file} does not exist")
             sys.exit(1)
-            
+
         tasks = []
         try:
             with open(url_list_file, 'r', encoding='utf-8') as f:
@@ -322,8 +373,8 @@ class BatchPullUploader:
                     # 跳过空行和注释行
                     if not line or line.startswith('#'):
                         continue
-                    
-                    # 解析三列格式，支持逗号分隔
+
+                    # 解析四列格式，支持逗号分隔
                     parts = [part.strip() for part in line.split(',')]
                     
                     if len(parts) < 1:
@@ -332,14 +383,19 @@ class BatchPullUploader:
                     url = parts[0]
                     media_name = parts[1] if len(parts) > 1 and parts[1] else None
                     class_id = parts[2] if len(parts) > 2 and parts[2] else None
-                    
+                    media_storage_path = parts[3] if len(parts) > 3 and parts[3] else None
+
                     # 基本URL格式验证
                     if not (url.startswith('http://') or url.startswith('https://')):
                         self.logger.warning(f"Line {line_num} - Invalid URL format (must start with http:// or https://): {url}")
                         continue
 
-                    tasks.append((line_num, url, media_name, class_id))
-                    
+                    if media_storage_path and media_storage_path.strip() and not media_storage_path.strip().startswith('/'):
+                        self.logger.warning(f"Line {line_num} - Invalid MediaStoragePath format: {media_storage_path}, must start with '/'")
+                        continue
+
+                    tasks.append((line_num, url, media_name, class_id, media_storage_path))
+
                     # 记录解析信息
                     self.logger.debug(f"Line {line_num} parsed: {line}")
                         
@@ -476,13 +532,13 @@ class BatchPullUploader:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # 提交所有任务
             future_to_task = {
-                executor.submit(self.worker.pull_with_retry, url, media_name, class_id): (line_num, url, media_name, class_id)
-                for line_num, url, media_name, class_id in urls
+                executor.submit(self.worker.pull_with_retry, url, media_name, class_id, media_storage_path): (line_num, url, media_name, class_id, media_storage_path)
+                for line_num, url, media_name, class_id, media_storage_path in urls
             }
             
             # 处理完成的任务
             for future in as_completed(future_to_task):
-                line_num, url, media_name, class_id = future_to_task[future]
+                line_num, url, media_name, class_id, media_storage_path = future_to_task[future]
                 try:
                     # 设置单个任务的总超时时间（线程池强制超时，作为最后保障）
                     # 注意：这个超时应该略大于内部超时，给内部检查留出时间
@@ -525,17 +581,22 @@ def usage():
     print("Usage: python3 batch_pull_upload.py {url_list_file}")
     print("")
     print("url_list_file format example:")
-    print("https://example.com/video1.mp4,我的视频1,1001")
+    print("https://example.com/video1.mp4,我的视频1,1001,/custom/path/video1.mp4")
     print("https://example.com/video2.mp4,我的视频2,")
     print("# This is a comment line and will be ignored")
     print("https://example.com/video3.mp4,,1002")
     print("")
-    print("Format: URL,MediaName,ClassId")
+    print("Format: URL,MediaName,ClassId,MediaStoragePath")
     print("- URL: 必填，媒体文件URL")
     print("- MediaName: 可选，媒体文件名称")
     print("- ClassId: 可选，分类ID，用于对媒体进行分类管理，可创建分类后获得分类 ID。")
+    print("- MediaStoragePath: 可选，媒体存储路径，以/开头，只有FileID + Path 模式的子应用可以指定存储路径。")
     print("")
-    print("NOTE: Columns are separated by commas. Empty values are allowed for optional fields.")
+    print("NOTE:")
+    print("- Columns are separated by commas. Empty values are allowed for optional fields.")
+    print("- 如果配置里指定 storage_path.use_url_path = true 时，则保持原路径，以url后的path为存储路径。")
+    print("- 如果配置里指定 storage_path.prefix，则所有媒体都会加上该前缀。")
+    print("- 路径组合优先级：use_url_path=true 时使用 url_path，否则使用 MediaStoragePath，最后拼接 prefix。")
 
 
 def main():
