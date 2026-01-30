@@ -88,18 +88,23 @@ supportMediaClassification = [ 'video', 'audio', 'image' ]
 excludeMediaType = [  ]
 migrateDbStoragePath = ''
 migrateResultOutputPath = ''
+[common.storagePath]
+useOriginal = true  # 若上传需要保持原有路径则为true，只使用vod应用支持FileID + Path 模式。
+prefix = ''
 ``` 
-| 名称                       |                                                                                        描述                                                                                        |
-| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| secretId                   |             用户密钥 SecretId，请将 `SECRETID` 替换为您的真实密钥信息。可前往 [访问管理控制台](https://console.cloud.tencent.com/cam/capi) 中的云 API 密钥页面查看获取             |
-| secretKey                  |            用户密钥 SecretKey，请将 `SECRETKEY` 替换为您的真实密钥信息。可前往 [访问管理控制台](https://console.cloud.tencent.com/cam/capi) 中的云 API 密钥页面查看获取            |
+| 名称                       |                                                                    描述                                                                    |
+| :------------------------- |:----------------------------------------------------------------------------------------------------------------------------------------:|
+| secretId                   |            用户密钥 SecretId，请将 `SECRETID` 替换为您的真实密钥信息。可前往 [访问管理控制台](https://console.cloud.tencent.com/cam/capi) 中的云 API 密钥页面查看获取            |
+| secretKey                  |           用户密钥 SecretKey，请将 `SECRETKEY` 替换为您的真实密钥信息。可前往 [访问管理控制台](https://console.cloud.tencent.com/cam/capi) 中的云 API 密钥页面查看获取           |
 | region                     | 接入点地域，即请求到哪个地域的云点播服务器，不同于存储地域，具体参考支持的 [地域列表](https://cloud.tencent.com/document/product/266/31756#.E5.9C.B0.E5.9F.9F.E5.88.97.E8.A1.A8)。 |
 | subAppId                   |                点播[子应用](https://cloud.tencent.com/document/product/266/14574) ID 。如果需要将文件迁移到子应用，则将该字段填写为子应用 ID；否则无需填写该字段。                 |
-| concurrency                |                                                                            并发迁移文件的数量，最大值50                                                                            |
-| supportMediaClassification |                                                        支持迁移的媒体类型列表：video（视频），audio（音频），image（图像）                                                         |
-| excludeMediaType           |                                                                               需要排除的文件类型列表                                                                               |
-| migrateDbStoragePath       |                                                                          迁移db保存路径，为空表示当前目录                                                                          |
-| migrateResultOutputPath    |                                                      迁移结果保存路径（一条迁移记录对应一行json格式字符串），为空表示当前目录                                                      |
+| concurrency                |                                                             并发迁移文件的数量，最大值50                                                              |
+| supportMediaClassification |                                                支持迁移的媒体类型列表：video（视频），audio（音频），image（图像）                                                 |
+| excludeMediaType           |                                                               需要排除的文件类型列表                                                                |
+| migrateDbStoragePath       |                                                            迁移db保存路径，为空表示当前目录                                                             |
+| migrateResultOutputPath    |                                                  迁移结果保存路径（一条迁移记录对应一行json格式字符串），为空表示当前目录                                                  |
+| useOriginal    |                                  适用于上传迁移时需要自定义路径，此时subAppId需要为支持FileID + Path 模式的应用。如果为true，则指定路径为原路径。                                   |
+| prefix    |                                                 上传迁移时，如果开启指定存储路径， 则可以定义统一前缀，没有特别要求为空即可。                                                  |
 
 文件类型说明：
 - 视频：MP4、TS、FLV、WMV、ASF、RM、RMVB、MPG、MPEG、3GP、MOV、WEBM、MKV、AVI，不支持HLS、DASH

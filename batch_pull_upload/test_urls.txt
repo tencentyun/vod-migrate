@@ -1,14 +1,19 @@
 # 批量拉取上传URL列表示例文件
-# 格式：URL,MediaName,ClassId
+# 格式：URL,MediaName,ClassId,MediaStoragePath
 # 以#开头的行为注释，会被忽略
 # 空行也会被忽略
-# 注意：MediaName和ClassId为可选字段，可以为空
+# 注意：MediaName、ClassId、MediaStoragePath为可选字段，可以为空。
 
+# 其中MediaStoragePath是媒体存储路径，以/开头，只有FileID + Path 模式的子应用可以指定存储路径。
+# 如果配置里指定custom_path.enable = true时，则保持原路径，以url后的path为存储路径。MediaStoragePath则忽略。
 
 # 测试URL列表 - 完整格式
-http://example/v/oceans.mp4,测试
-#http://error-exqmple/v/xxxx.mp4,错误测试视频,1002
+#http://www.w3school.com.cn/example/html5/mov_bbb.mp4,test1,,/test/mov_bbb.mp4
+#http://error-exqmple/v/xxxx.mp4,错误测试视频,1002,/test/xxxx.mp4
 #https://example/2010/05/sintel/trailer.mp4
 
 # 测试URL列表 - 部分格式
-#http://www.w3school.com.cn/example/html5/mov_bbb.mp4,,1003
+http://www.w3school.com.cn/example/html5/mov_bbb.mp4
+http://vjs.zencdn.net/v/oceans.mp4
+https://www.w3schools.com/html/movie.mp4
+#http://www.w3school.com.cn/example/html5/mov_bbb.mp4,,,/path

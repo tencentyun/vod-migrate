@@ -4,5 +4,9 @@
     "region": "ap-guangzhou",
     "subappid": 1,
     "tasks_priority": 0,
-    "procedure": ""
+    "procedure": "",
+    "custom_path": {
+        "use_url_path": false,
+        "prefix":""
+    }
 }
