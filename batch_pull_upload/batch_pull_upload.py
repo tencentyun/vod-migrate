@@ -32,6 +32,37 @@ LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 INTERNAL_TIMEOUT = 60  # 内部重试检查超时时间（秒）和 腾讯云SDK单次接口请求默认超时时间保持一致
 EXTERNAL_TIMEOUT = 70  # 线程池强制超时时间（秒），应该略大于内部超时
 
+# MediaStoragePath 后端禁止的字符及其百分号编码映射
+# 后端校验规则: strings.ContainsAny(path, "?#[]") 即拒绝
+# 这里仅对这 4 个字符做最小化精准转义，避免对空格、中文、% 等其他字符产生副作用
+_FORBIDDEN_PATH_CHARS = {
+    '?': '%3F',
+    '#': '%23',
+    '[': '%5B',
+    ']': '%5D',
+}
+
+
+def _sanitize_storage_path(path):
+    """对 MediaStoragePath 中后端禁止的字符做百分号编码。
+
+    仅替换 ? # [ ] 4 个字符，其他字符（包括 / 空格 中文 已存在的 %XX 等）保持原样，
+    避免双重编码或改变用户原有路径形态。
+    """
+    if not path:
+        return path
+    sanitized = path
+    for ch, enc in _FORBIDDEN_PATH_CHARS.items():
+        if ch in sanitized:
+            sanitized = sanitized.replace(ch, enc)
+    if sanitized != path:
+        logging.info(
+            f"MediaStoragePath contains forbidden chars, auto percent-encoded: "
+            f"original={path}, sanitized={sanitized}"
+        )
+    return sanitized
+
+
 class PullUploadConfig:
     """配置管理类"""
     def __init__(self, config_file=None):
@@ -157,10 +188,10 @@ class PullUploadWorker:
                 filename = parsed_url.path.split('/')[-1]
                 result = prefix + '/' + filename
                 logging.debug(f"Using prefix only: {prefix}")
-            return result
+            return _sanitize_storage_path(result)
         elif final_path:
             # 如果没有 prefix 但有路径，使用路径
-            return final_path
+            return _sanitize_storage_path(final_path)
 
         # 没有路径需要设置
         return None
@@ -597,6 +628,7 @@ def usage():
     print("- 如果配置里指定 storage_path.use_url_path = true 时，则保持原路径，以url后的path为存储路径。")
     print("- 如果配置里指定 storage_path.prefix，则所有媒体都会加上该前缀。")
     print("- 路径组合优先级：use_url_path=true 时使用 url_path，否则使用 MediaStoragePath，最后拼接 prefix。")
+    print("- 由于后端 MediaStoragePath 不允许包含 ? # [ ] 这 4 个字符，脚本会自动将它们做百分号编码（%3F %23 %5B %5D）。")
 
 
 def main():
