@@ -120,6 +120,7 @@ https://example.com/video4.mp4,完整视频,1004,/archive/video4.mp4
     "subappid": 0,
     "tasks_priority": 0,
     "procedure": "",
+    "storage_region": "",
     "custom_path": {
         "use_url_path": false,
         "prefix": ""
@@ -169,6 +170,11 @@ python3 batch_pull_upload.py your_url_list.txt
   - 用于指定上传后的处理流程
   - 需要在腾讯云控制台预先创建任务流模板
   - 示例：`"procedure": "MyCustomProcess"` 指定自定义处理流程
+
+- `storage_region` - 指定上传园区（可选，默认为空字符串，即使用账号默认地域）
+  - 仅适用于对上传地域有特殊需求的用户，对应 PullUpload 接口的 `StorageRegion` 字段
+  - 若指定上传园区，请先在控制台 [上传存储设置](https://cloud.tencent.com/document/product/266/14059) 中开启相应的存储地域，否则会报错 `InvalidParameter.StorageRegion`
+  - 示例：`"storage_region": "ap-beijing"`、`"ap-chongqing"`、`"ap-singapore"` 等
 
 - `custom_path` - 自定义存储路径配置（可选）
   - `use_url_path`：是否使用URL路径（默认false）

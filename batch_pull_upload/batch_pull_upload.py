@@ -216,7 +216,13 @@ class PullUploadWorker:
                 procedure = self.config["procedure"]
                 if procedure and procedure.strip():
                     params["Procedure"] = procedure.strip()
-                
+
+            # 添加StorageRegion参数（指定上传园区，如 ap-beijing、ap-chongqing、ap-singapore 等）
+            if "storage_region" in self.config:
+                storage_region = self.config["storage_region"]
+                if storage_region and isinstance(storage_region, str) and storage_region.strip():
+                    params["StorageRegion"] = storage_region.strip()
+
         except Exception as e:
             return {
                 "success": False,
@@ -597,6 +603,7 @@ def usage():
     print("- 如果配置里指定 storage_path.use_url_path = true 时，则保持原路径，以url后的path为存储路径。")
     print("- 如果配置里指定 storage_path.prefix，则所有媒体都会加上该前缀。")
     print("- 路径组合优先级：use_url_path=true 时使用 url_path，否则使用 MediaStoragePath，最后拼接 prefix。")
+    print("- 如果配置里指定 storage_region，则拉取上传到指定园区（如 ap-beijing、ap-chongqing、ap-singapore），需先在控制台开启相应存储地域。")
 
 
 def main():

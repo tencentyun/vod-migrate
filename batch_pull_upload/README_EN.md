@@ -120,6 +120,7 @@ The script will automatically read the configuration file in the script director
     "subappid": 0,
     "tasks_priority": 0,
     "procedure": "",
+    "storage_region": "",
     "custom_path": {
         "use_url_path": false,
         "prefix": ""
@@ -169,6 +170,11 @@ python3 batch_pull_upload.py your_url_list.txt
   - Used to specify the processing flow after upload
   - Needs to be created in advance in the Tencent Cloud console
   - Example: `"procedure": "MyCustomProcess"` specifies a custom processing flow
+
+- `storage_region` - Specify upload region (optional, default is empty string, which means using the account's default region)
+  - Only applicable to users with special requirements for the upload region. Maps to the `StorageRegion` field of the PullUpload API
+  - If a region is specified, please first enable the corresponding storage region in the console [Upload Storage Settings](https://www.tencentcloud.com/document/product/266/14059); otherwise, the API will return `InvalidParameter.StorageRegion`
+  - Examples: `"storage_region": "ap-beijing"`, `"ap-chongqing"`, `"ap-singapore"`, etc.
 
 - `custom_path` - Custom storage path configuration (optional)
   - `use_url_path`: Whether to use the URL path (default false)
