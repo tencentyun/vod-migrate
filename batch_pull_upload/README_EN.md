@@ -58,6 +58,7 @@ Create a text file, supporting multiple formats, one task per line, supporting c
 - **Column 2 (Optional)**: MediaName, supports Chinese, leave blank to use default name
 - **Column 3 (Optional)**: ClassId, numeric format, leave blank to use default class
 - **Column 4 (Optional)**: MediaStoragePath, custom storage path, starting with `/`, only sub-applications in FileID + Path mode can specify the storage path.
+- **Column 5 (Optional)**: [SourceContext](https://cloud.tencent.com/document/product/266/35575#SourceContext), source context passed through as-is, up to 250 characters (returned via the [`PullComplete` event notification](https://cloud.tencent.com/document/product/266/7831) after pull upload completes). Can be used to map the uploaded media to the original vid / business-side identifier. The value must not contain commas; if the original text contains commas, pass a base64-encoded value (the tool does not encode/decode).
 
 **URL Format Requirements:**
 - Must start with `http://` or `https://`
@@ -87,10 +88,10 @@ https://example.com/video1.mp4,,1001
 https://example.com/video2.mp4,,1002
 ```
 
-#### 🎯 Format 4: Complete Four-Column Format
+#### 🎯 Format 4: Complete Five-Column Format
 ```
-https://example.com/video1.mp4,MyVideo1,1001,/custom/path/video1.mp4
-https://example.com/video2.mp4,TestVideo,1002,/videos/2024/test.mp4
+https://example.com/video1.mp4,MyVideo1,1001,/custom/path/video1.mp4,ctx-001
+https://example.com/video2.mp4,TestVideo,1002,/videos/2024/test.mp4,ctx-002
 ```
 
 #### 🎯 Format 5: Mixed Use (Fully Supported)
@@ -225,6 +226,50 @@ Final Path: `/archive/custom/path/video.mp4`
 URL List: `https://example.com/video.mp4`
 Final Path: `/uploads/video.mp4`
 
+## SourceContext and PullComplete Event Notification
+
+The 5th column `SourceContext` is a source context that is **passed through as-is** and returned unchanged via the [`PullComplete` event notification](https://cloud.tencent.com/document/product/266/7831) after the URL pull upload completes, up to **250 characters**. See the [SourceContext description](https://cloud.tencent.com/document/product/266/35575#SourceContext) for the field definition.
+
+### Typical Use Case: Mapping to the Original vid
+
+During batch migration, you can put the **source video ID (original vid) or a business-side unique identifier** in the 5th column. After the upload completes, the `PullComplete` event notification returns this value as-is via `SourceContext`. Combined with the `TaskId` and `FileId` from the same event, you can build a "source vid ↔ new FileId" mapping for migration reconciliation.
+
+### Prerequisite: Enable Event Notification in Advance
+
+Obtaining `SourceContext` requires **enabling event notification in the VOD console first** (either normal callback with a callback URL, or reliable callback via pulling events). If not enabled, the `PullComplete` event will not be received, and `SourceContext` cannot be obtained. See the [event notification documentation](https://cloud.tencent.com/document/product/266/7831) and [console callback settings](https://cloud.tencent.com/document/product/266/33781) for configuration.
+
+### How to Retrieve It in the Callback
+
+`SourceContext` is nested under `MediaBasicInfo.SourceInfo` of the `PullComplete` event. The full path is:
+
+```
+PullCompleteEvent.MediaBasicInfo.SourceInfo.SourceContext
+```
+
+Key snippet of the callback JSON:
+
+```json
+{
+    "EventType": "PullComplete",
+    "PullCompleteEvent": {
+        "TaskId": "125xxxxxx-Pull-f5ac8127b3b6b85cdc13f237c6005d8",
+        "FileId": "14508071098244959037",
+        "MediaBasicInfo": {
+            "MediaUrl": "http://xxx.vod2.myqcloud.com/xxx/xxx.mp4",
+            "SourceInfo": {
+                "SourceType": "Upload",
+                "SourceContext": "your-origin-vid"  // <- the 5th column value passed at pull upload, returned as-is
+            }
+        },
+        "FileUrl": "http://xxx.vod2.myqcloud.com/xxx/xxx.mp4"
+    }
+}
+```
+
+> Notes:
+> - `SourceContext` is up to 250 characters. The tool does not truncate it; overly long values will be rejected by the API.
+> - If the original identifier contains commas, pass a base64-encoded value in the 5th column (the tool does not encode/decode), and base64-decode it yourself after receiving the callback.
+
 ## Core Parameter Configuration
 
 ### Built-in Default Parameters
@@ -305,6 +350,7 @@ worker = PullUploadWorker(max_retries=5)
       "url": "https://example.com/video1.mp4",
       "media_name": "MyVideo1",
       "class_id": 1001,
+      "source_context": "ctx-001",
       "response": "{\"TaskId\":\"abc123\",\"Status\":\"PROCESSING\"}",
       "duration": 2.5,
       "task_id": "abc123"
@@ -315,6 +361,7 @@ worker = PullUploadWorker(max_retries=5)
       "url": "https://example.com/video2.mp4",
       "media_name": null,
       "class_id": null,
+      "source_context": null,
       "error": "INVALID_URL: Invalid URL format",
       "error_code": "INVALID_URL",
       "retry_attempts": 2,
