@@ -58,6 +58,7 @@ bash batch_pull_upload_api.sh
 - **第2列（可选）**：MediaName 媒体名称，支持中文，留空表示使用默认名称
 - **第3列（可选）**：ClassId 分类ID，数字格式，留空表示使用默认分类
 - **第4列（可选）**：MediaStoragePath 自定义存储路径，以`/`开头，只有FileID + Path 模式的子应用可以指定存储路径。
+- **第5列（可选）**：[SourceContext 来源上下文](https://cloud.tencent.com/document/product/266/35575#SourceContext) ，原样透传，最长 250 个字符（拉取上传完成后通过 [事件通知](https://cloud.tencent.com/document/product/266/7831) /回调返回）。可用于将上传后的媒体与原始 vid / 业务侧标识做对应。值不能包含逗号；若原文含逗号，请传入 base64 编码后的值（工具不做编解码）。
 
 **URL格式要求：**
 - 必须以 `http://` 或 `https://` 开头
@@ -87,10 +88,10 @@ https://example.com/video1.mp4,,1001
 https://example.com/video2.mp4,,1002
 ```
 
-#### 🎯 格式4：完整四列格式
+#### 🎯 格式4：完整五列格式
 ```
-https://example.com/video1.mp4,我的视频1,1001,/custom/path/video1.mp4
-https://example.com/video2.mp4,测试视频,1002,/videos/2024/test.mp4
+https://example.com/video1.mp4,我的视频1,1001,/custom/path/video1.mp4,ctx-001
+https://example.com/video2.mp4,测试视频,1002,/videos/2024/test.mp4,ctx-002
 ```
 
 #### 🎯 格式5：混合使用（完全支持）
@@ -104,8 +105,11 @@ https://example.com/video2.mp4,视频名称,
 # URL + 分类ID
 https://example.com/video3.mp4,,1003
 
+# URL + 来源上下文SourceContext
+https://example.com/video3.mp4,,,,ctx-vid
+
 # 完整格式
-https://example.com/video4.mp4,完整视频,1004,/archive/video4.mp4
+https://example.com/video4.mp4,完整视频,1004,/archive/video4.mp4,ctx-001
 ```
 
 ### 2.准备配置文件
@@ -224,6 +228,50 @@ URL列表：`https://example.com/video.mp4,,,/custom/path/video.mp4`
 ```
 URL列表：`https://example.com/video.mp4`
 最终路径：`/uploads/video.mp4`
+
+## SourceContext 与 PullComplete 事件通知
+
+第 5 列 `SourceContext` 为来源上下文，会被**原样透传**，并在 URL 拉取视频上传完成后，通过 [`PullComplete` 事件通知](https://cloud.tencent.com/document/product/266/7831) 原样返回，最长 **250 个字符**。字段定义详见 [SourceContext 说明](https://cloud.tencent.com/document/product/266/35575#SourceContext)。
+
+### 典型用途：与原始 vid 做对应
+
+批量迁移时，可在第 5 列填入**源站视频 ID（原始 vid）或业务侧唯一标识**。上传完成后，`PullComplete` 事件通知会通过 `SourceContext` 原样带回该值，结合同一事件中的 `TaskId`、`FileId`，即可建立「源 vid ↔ 新 FileId」的映射关系，用于迁移对账。
+
+### 前提：需提前在控制台配置回调设置
+
+获取 `SourceContext` 的前提是**先在云点播控制台配置回调设置**（配置回调 URL 的普通回调，或使用可靠回调拉取事件；同时配置视频上传完成事件通知）。若未开启，则不会收到 `PullComplete` 事件，也就无法拿到 `SourceContext`。配置方式详见 [控制台回调设置](https://cloud.tencent.com/document/product/266/33781)。
+
+### 如何在回调中获取
+
+`SourceContext` 位于 [`PullComplete` 事件通知](https://cloud.tencent.com/document/product/266/7831) 的 `MediaBasicInfo.SourceInfo` 下，完整路径为：
+
+```
+PullCompleteEvent.MediaBasicInfo.SourceInfo.SourceContext
+```
+
+回调 JSON 关键片段示例：
+
+```json
+{
+    "EventType": "PullComplete",
+    "PullCompleteEvent": {
+        "TaskId": "125xxxxxx-Pull-f5ac8127b3b6b85cdc13f237c6005d8",
+        "FileId": "14508071098244959037",
+        "MediaBasicInfo": {
+            "MediaUrl": "http://xxx.vod2.myqcloud.com/xxx/xxx.mp4",
+            "SourceInfo": {
+                "SourceType": "Upload",
+                "SourceContext": "your-origin-vid"  // ← 拉取上传时第5列传入的值，原样返回
+            }
+        },
+        "FileUrl": "http://xxx.vod2.myqcloud.com/xxx/xxx.mp4"
+    }
+}
+```
+
+> 注意：
+> - `SourceContext` 最长 250 个字符，工具不做截断，超长将由 API 报错。
+> - 若原始标识包含逗号，请在第 5 列传入 base64 编码后的值（工具不做编解码），收到回调后自行 base64 解码还原。
 
 ## 核心参数配置
 
